@@ -48,9 +48,6 @@ void draw() {
   //q_now = new Quaternion(cos(angle_now/2),sin(angle_now/2) * axi_x,sin(angle_now/2) * axi_y,sin(angle_now/2) * axi_z);
   //q_now = new Quaternion(1,0,0,0);
   
-  val = readArduino(q_now, i_s);
-  q_now.normalize(); //normalize the quaternion
-  
   my_chip = new Chip(q_now,length_now,width_now,hight_now); // initiallize my_chip
   
    background(255); // important for clean the background
@@ -62,20 +59,27 @@ void draw() {
    int z_axis_long = 50;
    int x_pos = 300;
    int y_pos = 150;
-   int z_pos = 0;
+   int z_pos = 100;
    // x axis
-   line(0+x-x_pos,0+y+y_pos,0,x_axis_long+x-x_pos,0+y+y_pos,0);
+   line(0+x-x_pos,0+y+y_pos,-z_pos,x_axis_long+x-x_pos,0+y+y_pos,-z_pos);
    stroke(0);
-   line(x_axis_long+x-x_pos,0+y+y_pos,0,x_axis_long-10+x-x_pos,-5+y+y_pos,0);
-   line(x_axis_long+x-x_pos,0+y+y_pos,0,x_axis_long-10+x-x_pos,5+y+y_pos,0);
+   line(x_axis_long+x-x_pos,0+y+y_pos,-z_pos,x_axis_long-10+x-x_pos,-5+y+y_pos,-z_pos);
+   line(x_axis_long+x-x_pos,0+y+y_pos,-z_pos,x_axis_long-10+x-x_pos,5+y+y_pos,-z_pos);
    // z axis
-   line(0+x-x_pos,0+y+y_pos,0,0+x-x_pos,-y_axis_long+y+y_pos,0);
-   line(0+x-x_pos,-y_axis_long+y+y_pos,0,5+x-x_pos,-y_axis_long+10+y+y_pos,0);
-   line(0+x-x_pos,-y_axis_long+y+y_pos,0,-5+x-x_pos,-y_axis_long+10+y+y_pos,0);
+   line(0+x-x_pos,0+y+y_pos,-z_pos,0+x-x_pos,-y_axis_long+y+y_pos,-z_pos);
+   line(0+x-x_pos,-y_axis_long+y+y_pos,-z_pos,5+x-x_pos,-y_axis_long+10+y+y_pos,-z_pos);
+   line(0+x-x_pos,-y_axis_long+y+y_pos,-z_pos,-5+x-x_pos,-y_axis_long+10+y+y_pos,-z_pos);
    // y axis
-   line(0+x-x_pos,0+y+y_pos,0,0+x-x_pos,0+y+y_pos,z_axis_long);
+   line(0+x-x_pos,0+y+y_pos,-z_pos,0+x-x_pos,0+y+y_pos,z_axis_long-z_pos);
+   line(0+x-x_pos,0+y+y_pos,z_axis_long-z_pos,0+x-x_pos,0+y+y_pos-5,z_axis_long-z_pos-10);
+   line(0+x-x_pos,0+y+y_pos,z_axis_long-z_pos,0+x-x_pos,0+y+y_pos+5,z_axis_long-z_pos-10);
    
    translate(x,y,z);
+   
+   my_chip.draw_chip_box();
+   
+   val = readArduino(q_now, i_s);
+   q_now.normalize(); //normalize the quaternion
    
    my_chip.vertices_cal();  
    //my_chip.draw_chip_new();
@@ -207,7 +211,7 @@ class Chip {
     
     //left_side
     beginShape();
-    
+    fill(255);
     //texture(side_side);
     vertex(-Hpos.X, Hpos.Y, Hpos.Z, 0, 0);
     vertex(-Cpos.X, Cpos.Y, Cpos.Z, 0, 10);
@@ -217,19 +221,77 @@ class Chip {
     
     //right_side
     beginShape();
-    
+    fill(255);
     //texture(right_side);
     vertex(-Bpos.X, Bpos.Y, Bpos.Z, 0, 0);
     vertex(-Gpos.X, Gpos.Y, Gpos.Z, 0, 10);
     vertex(-Fpos.X, Fpos.Y, Fpos.Z, 165, 10);
     vertex(-Epos.X, Epos.Y, Epos.Z, 165, 0);
     endShape(CLOSE);
-    
-    
-    
     }
     
-    // a new idea of draw a chip
+  //draw a chip box to see the stability of the chip  
+  void draw_chip_box() {    
+    //start to draw!
+    
+    //bottom_side
+    beginShape();
+    noFill();
+    vertex(-Apos.X, Apos.Y, Apos.Z, 0, 0);
+    vertex(-Bpos.X, Bpos.Y, Bpos.Z, 544, 0);
+    vertex(-Epos.X, Epos.Y, Epos.Z, 544, 268);
+    vertex(-Cpos.X, Cpos.Y, Cpos.Z, 0, 268);
+    endShape(CLOSE);
+    
+    //top_side
+    beginShape();
+    noFill();
+    vertex(-Dpos.X, Dpos.Y, Dpos.Z, 544, 0);
+    vertex(-Gpos.X, Gpos.Y, Gpos.Z, 0,0);
+    vertex(-Fpos.X, Fpos.Y, Fpos.Z, 0, 264);
+    vertex(-Hpos.X, Hpos.Y, Hpos.Z, 554, 264);
+    endShape(CLOSE);
+    
+    //facing_side
+    beginShape();
+    noFill();
+    vertex(-Hpos.X, Hpos.Y, Hpos.Z, 0, 0);
+    vertex(-Cpos.X, Cpos.Y, Cpos.Z, 0, 10);
+    vertex(-Epos.X, Epos.Y, Epos.Z, 165, 10);
+    vertex(-Fpos.X, Fpos.Y, Fpos.Z, 165, 0);
+    endShape(CLOSE);
+    
+    //back_side
+    beginShape();
+    noFill();
+    vertex(-Apos.X, Apos.Y, Apos.Z, 0, 0);
+    vertex(-Dpos.X, Dpos.Y, Dpos.Z, 0, 10);
+    vertex(-Gpos.X, Gpos.Y, Gpos.Z, 165, 10);
+    vertex(-Bpos.X, Bpos.Y, Bpos.Z, 165, 0);
+    endShape(CLOSE);
+    
+    //left_side
+    beginShape();
+    noFill();
+    //texture(side_side);
+    vertex(-Hpos.X, Hpos.Y, Hpos.Z, 0, 0);
+    vertex(-Cpos.X, Cpos.Y, Cpos.Z, 0, 10);
+    vertex(-Apos.X, Apos.Y, Apos.Z, 165, 10);
+    vertex(-Dpos.X, Dpos.Y, Dpos.Z, 165, 0);
+    endShape(CLOSE);
+    
+    //right_side
+    beginShape();
+    noFill();
+    //texture(right_side);
+    vertex(-Bpos.X, Bpos.Y, Bpos.Z, 0, 0);
+    vertex(-Gpos.X, Gpos.Y, Gpos.Z, 0, 10);
+    vertex(-Fpos.X, Fpos.Y, Fpos.Z, 165, 10);
+    vertex(-Epos.X, Epos.Y, Epos.Z, 165, 0);
+    endShape(CLOSE);
+    }    
+    
+    // a new idea of draw a chip. Using Eura angle, failed because Gimbol lock happened
   void draw_chip_new () {
     // rotate parameters
     float roll_angle_partone = 2 * (q.W * q.X + q.Y * q.Z);
