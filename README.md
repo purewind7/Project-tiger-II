@@ -10,3 +10,4 @@ This project involves the IMU optical camera and IR data fusion in a UGV(unmanne
 
 Why Tiger II? My first plan is to use a WWII German Panzer Tiger II model as the platform. Sure I have better choices, but the name has settled and I'm a WWII fan. So that's it! Wish me good luck.
 
+purewind7
