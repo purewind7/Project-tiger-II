@@ -5,33 +5,27 @@ String val;     // Data received from the serial port
 //float reading_q;  // data received as int
 
 
-float x,y,z;    // for display
-int i = 1; 
-int i_s;
-float angle_now;
-float axi_x;
+float x,y,z;              // for display
+int i = 1;                // we all have int i
+int i_s;                  // another one!?
+float angle_now;          // test angle
+float axi_x;              // test axies
 float axi_y;
 float axi_z;
-
-float length_now = 264;
+float length_now = 264;   // length width and hight of chip
 float width_now = 121.6;
 float hight_now = 16;
-Chip my_chip;   // my chip!
-Quaternion q_now;  //Quaternion for q.
-
-
+Chip my_chip;             // my chip!
+Quaternion q_now;         //Quaternion for q.
 
 void setup() {
   
-  frameRate(100);
   size(800,450,P3D);
   x = 400;
   y = 225;  
   z = 0;
   
   q_now = new Quaternion(1,0,0,0);
-  
- 
   
   // Open whatever port is the one you're using. 
   String portName = "/dev/tty.usbmodem1411";
@@ -53,7 +47,7 @@ void draw() {
    background(255); // important for clean the background
    //spotLight(255, 255, 255, width/2, height/2, 400, 0, 0, -1, PI/4, 2); // light the world!
    
-  // print the axis
+  // draw the axis of x y z in the canvas
    int x_axis_long = 100;
    int y_axis_long = 75;
    int z_axis_long = 50;
@@ -62,13 +56,14 @@ void draw() {
    int z_pos = 100;
    // x axis
    line(0+x-x_pos,0+y+y_pos,-z_pos,x_axis_long+x-x_pos,0+y+y_pos,-z_pos);
-   stroke(0);
    line(x_axis_long+x-x_pos,0+y+y_pos,-z_pos,x_axis_long-10+x-x_pos,-5+y+y_pos,-z_pos);
    line(x_axis_long+x-x_pos,0+y+y_pos,-z_pos,x_axis_long-10+x-x_pos,5+y+y_pos,-z_pos);
+   
    // z axis
    line(0+x-x_pos,0+y+y_pos,-z_pos,0+x-x_pos,-y_axis_long+y+y_pos,-z_pos);
    line(0+x-x_pos,-y_axis_long+y+y_pos,-z_pos,5+x-x_pos,-y_axis_long+10+y+y_pos,-z_pos);
    line(0+x-x_pos,-y_axis_long+y+y_pos,-z_pos,-5+x-x_pos,-y_axis_long+10+y+y_pos,-z_pos);
+   
    // y axis
    line(0+x-x_pos,0+y+y_pos,-z_pos,0+x-x_pos,0+y+y_pos,z_axis_long-z_pos);
    line(0+x-x_pos,0+y+y_pos,z_axis_long-z_pos,0+x-x_pos,0+y+y_pos-5,z_axis_long-z_pos-10);
@@ -76,7 +71,7 @@ void draw() {
    
    translate(x,y,z);
    
-   my_chip.draw_chip_box();
+   my_chip.draw_chip_box(); // draw a chip like box represent the initial position
    
    val = readArduino(q_now, i_s);
    //q_now.normalize(); //normalize the quaternion
@@ -92,35 +87,28 @@ void draw() {
   System.gc();
 }
 
-// create a chip class with vertices after rotation according to
-// quaternion.
+// create a chip class with vertices after rotation according to quaternion.
 class Chip {
-  
-  Quaternion q; // variables to hold quaternion.
-  float length_x;
+  Quaternion q;        // variables to hold quaternion.
+  float length_x;      // variables to hold the length width and hight
   float width_y;
   float hight_z;
+  
+  //textures
   PImage top_side = loadImage("top-view-pinout.jpg");
   PImage bottom_side = loadImage("back-side.jpg");
   PImage facing_side = loadImage("facing_side.jpg");
+  
+  //quaternion of 8 vertices
   Quaternion Apos;
-  
   Quaternion Bpos;
- 
-    Quaternion Cpos;
-
-    Quaternion Dpos;
-
-    Quaternion Epos;
-
-    Quaternion Fpos;
-
-    Quaternion Gpos;
-
-    Quaternion Hpos;
-  
-
-  
+  Quaternion Cpos;
+  Quaternion Dpos;
+  Quaternion Epos;
+  Quaternion Fpos;
+  Quaternion Gpos;
+  Quaternion Hpos;
+    
   // constructor for Chip.
   Chip(Quaternion q_temp, float length_x_temp, float width_y_temp, float hight_z_temp) {
     q = q_temp;
@@ -128,48 +116,33 @@ class Chip {
     width_y = width_y_temp;
     hight_z = hight_z_temp;
     
+    // initial postion of 8 vertices
     Apos = new Quaternion(0,-length_x_temp/2,-width_y_temp/2,-hight_z_temp/2);
-  
     Bpos = new Quaternion(0,length_x_temp/2,-width_y_temp/2,-hight_z_temp/2);
- 
     Cpos = new Quaternion(0,-length_x_temp/2,width_y_temp/2,-hight_z_temp/2);
-
     Dpos = new Quaternion(0,-length_x_temp/2,-width_y_temp/2,hight_z_temp/2);
-
     Epos = new Quaternion(0,length_x_temp/2,width_y_temp/2,-hight_z_temp/2);
-
     Fpos = new Quaternion(0,length_x_temp/2,width_y_temp/2,hight_z/2);
-
     Gpos = new Quaternion(0,length_x_temp/2,-width_y_temp/2,hight_z_temp/2);
-
     Hpos = new Quaternion(0,-length_x_temp/2,width_y_temp/2,hight_z_temp/2);
-
-    // ready the 8 vertices of the chip.
+    
   }
   
-  
+  // ready the 8 vertices of the chip.
   void vertices_cal() {
     //calculate the vertices of chip and draw the chip.
-    Quaternion Apos_intial = new Quaternion(0,-length_x/2,-width_y/2,-hight_z/2);
-    Apos = q.mult(Apos_intial).mult(q.conjugate()); 
-    Quaternion Bpos_intial = new Quaternion(0,length_x/2,-width_y/2,-hight_z/2);
-    Bpos = q.mult(Bpos_intial).mult(q.conjugate());
-    Quaternion Cpos_intial = new Quaternion(0,-length_x/2,width_y/2,-hight_z/2);
-    Cpos = q.mult(Cpos_intial).mult(q.conjugate());
-    Quaternion Dpos_intial = new Quaternion(0,-length_x/2,-width_y/2,hight_z/2);
-    Dpos = q.mult(Dpos_intial).mult(q.conjugate());
-    Quaternion Epos_intial = new Quaternion(0,length_x/2,width_y/2,-hight_z/2);
-    Epos = q.mult(Epos_intial).mult(q.conjugate());
-    Quaternion Fpos_intial = new Quaternion(0,length_x/2,width_y/2,hight_z/2);
-    Fpos = q.mult(Fpos_intial).mult(q.conjugate());
-    Quaternion Gpos_intial = new Quaternion(0,length_x/2,-width_y/2,hight_z/2);
-    Gpos = q.mult(Gpos_intial).mult(q.conjugate());
-    Quaternion Hpos_intial = new Quaternion(0,-length_x/2,width_y/2,hight_z/2);
-    Hpos = q.mult(Hpos_intial).mult(q.conjugate());
+    Apos = q.mult(Apos).mult(q.conjugate()); 
+    Bpos = q.mult(Bpos).mult(q.conjugate());
+    Cpos = q.mult(Cpos).mult(q.conjugate());
+    Dpos = q.mult(Dpos).mult(q.conjugate());
+    Epos = q.mult(Epos).mult(q.conjugate());
+    Fpos = q.mult(Fpos).mult(q.conjugate());
+    Gpos = q.mult(Gpos).mult(q.conjugate());
+    Hpos = q.mult(Hpos).mult(q.conjugate());
   }
-    
-  void draw_chip() {    
-    //start to draw!
+  
+  //start to draw!  
+  void draw_chip() { 
     
     //bottom_side
     beginShape();
@@ -191,7 +164,6 @@ class Chip {
     
     //facing_side
     beginShape();
-    
     texture(facing_side);
     vertex(-Hpos.X, Hpos.Y, Hpos.Z, 0, 0);
     vertex(-Cpos.X, Cpos.Y, Cpos.Z, 0, 10);
@@ -201,7 +173,6 @@ class Chip {
     
     //back_side
     beginShape();
-    
     texture(facing_side);
     vertex(-Apos.X, Apos.Y, Apos.Z, 0, 0);
     vertex(-Dpos.X, Dpos.Y, Dpos.Z, 0, 10);
@@ -230,9 +201,8 @@ class Chip {
     endShape(CLOSE);
     }
     
-  //draw a chip box to see the stability of the chip  
-  void draw_chip_box() {    
-    //start to draw!
+  //draw a chip box represent initial positon of the chip  
+  void draw_chip_box() { 
     
     //bottom_side
     beginShape();
@@ -291,7 +261,8 @@ class Chip {
     endShape(CLOSE);
     }    
     
-    // a new idea of draw a chip. Using Eura angle, failed because Gimbol lock happened
+    // a new idea of draw a chip. Using Euler angle
+    // failed because Gimbol lock happened
   void draw_chip_new () {
     // rotate parameters
     float roll_angle_partone = 2 * (q.W * q.X + q.Y * q.Z);
@@ -371,7 +342,7 @@ class Chip {
     popMatrix();
   }
     
-    // print the location of ABCDEFGH
+  // print the location of ABCDEFGH
   void printlocation () {
     println("Apos: ");print(Apos.X); print(Apos.Y); println(Apos.Z);
     println("Bpos: ");print(Bpos.X); print(Bpos.Y); println(Bpos.Z);
@@ -381,8 +352,9 @@ class Chip {
 
 }
 
+// function reading arduino serial 
 String readArduino(Quaternion q_read, int i_read) {
-  String inputString = null;
+  String inputString = null; // String holding the arduino input
   if(myPort.available() > 0) {
     inputString = myPort.readStringUntil('\n');
   if (inputString !=null && inputString.length() > 0) {
@@ -394,12 +366,12 @@ String readArduino(Quaternion q_read, int i_read) {
     q_read.Z = float(inputStringArr[3]);
     i_read = int(inputStringArr[4]);
     
-    
   }
   }
 return inputString;
 }
 
+// Draw axies of canvas
 void drawLine(float x1, float y1, float z1, float x2, float y2, float z2, float weight, color strokeColour)
 {
   PVector p1 = new PVector(x1, y1, z1);
@@ -421,6 +393,7 @@ void drawLine(float x1, float y1, float z1, float x2, float y2, float z2, float 
   popMatrix();
 }
   
+//Quaternion class thanks to BlackAxe / Kolor aka Laurent Schmalen & RangerMauve
 
 /***************************************************************************
  * Quaternion class written by BlackAxe / Kolor aka Laurent Schmalen in 1997
