@@ -79,7 +79,7 @@ void draw() {
    my_chip.draw_chip_box();
    
    val = readArduino(q_now, i_s);
-   q_now.normalize(); //normalize the quaternion
+   //q_now.normalize(); //normalize the quaternion
    
    my_chip.vertices_cal();  
    //my_chip.draw_chip_new();
