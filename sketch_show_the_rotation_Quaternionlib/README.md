@@ -7,3 +7,5 @@ This is a Processing example using quaternion readout from arduino and LSM9DS0 t
 to show the rotation of the chip. 
 
 The arduino code was modified from [kriswiner's LSM9DS0 AHRS sketch](https://github.com/kriswiner/LSM9DS0).
+
+You can change the texture of chip into DOOOOGE. How good is that!
