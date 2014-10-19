@@ -31,8 +31,9 @@ void setup() {
   String portName = "/dev/tty.usbmodem1411";
   myPort = new Serial(this, portName, 38400); 
   //myPort.bufferUntil('\n');
-  delay(100);
+  delay(1000);
   myPort.clear();  
+  delay(5000);
 
 }
 

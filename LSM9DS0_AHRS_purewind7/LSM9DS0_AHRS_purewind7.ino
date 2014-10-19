@@ -131,8 +131,8 @@ const byte INT2XM = 2; // INT2XM tells us when mag data is ready
 const byte DRDYG  = 4; // DRDYG  tells us when gyro data is ready
 
 // global constants for 9 DoF fusion and AHRS (Attitude and Heading Reference System)
-#define GyroMeasError PI * (0.0f / 180.0f)       // gyroscope measurement error in rads/s (shown as 3 deg/s)
-#define GyroMeasDrift PI * (0.0f / 180.0f)      // gyroscope measurement drift in rad/s/s (shown as 0.0 deg/s/s)
+#define GyroMeasError PI * (0.165f / 180.0f)       // gyroscope measurement error in rads/s (shown as 3 deg/s)
+#define GyroMeasDrift PI * (0.1f / 180.0f)      // gyroscope measurement drift in rad/s/s (shown as 0.0 deg/s/s)
 // There is a tradeoff in the beta parameter between accuracy and response speed.
 // In the original Madgwick study, beta of 0.041 (corresponding to GyroMeasError of 2.7 degrees/s) was found to give optimal accuracy.
 // However, with this value, the LSM9SD0 response time is about 10 seconds to a stable initial quaternion.
@@ -159,11 +159,31 @@ float q[4] = {1.0f, 0.0f, 0.0f, 0.0f};    // vector to hold quaternion
 float eInt[3] = {0.0f, 0.0f, 0.0f};       // vector to hold integral error for Mahony method
 float temperature;
 
+float mx_max;
+float my_max;
+float mz_max;
+
+float mx_min;
+float my_min;
+float mz_min;
+
+float gx_integrate;
+float gy_integrate;
+float gz_integrate;
 int i;
 
 void setup()
 {
   i = 0;
+  
+  mx_max = 0.0;
+  my_max = 0.0;
+  mz_max = 0.0;
+  
+  gx_integrate = 0.0f;
+  gy_integrate = 0.0f;
+  gz_integrate = 0.0f;
+  
   Serial.begin(38400); // Start serial at 38400 bps
  
   // Set up interrupt pins as inputs:
@@ -182,7 +202,7 @@ void setup()
   //Serial.println("Should be 0x49D4");
   //Serial.println();
 
-  //delay(2000); 
+  delay(2000); 
   
  // Set data output ranges; choose lowest ranges for maximum resolution
  // Accelerometer scale can be: A_SCALE_2G, A_SCALE_4G, A_SCALE_6G, A_SCALE_8G, or A_SCALE_16G   
@@ -195,7 +215,7 @@ void setup()
  // Set output data rates  
  // Accelerometer output data rate (ODR) can be: A_ODR_3125 (3.225 Hz), A_ODR_625 (6.25 Hz), A_ODR_125 (12.5 Hz), A_ODR_25, A_ODR_50, 
  //                                              A_ODR_100,  A_ODR_200, A_ODR_400, A_ODR_800, A_ODR_1600 (1600 Hz)
-    dof.setAccelODR(dof.A_ODR_200); // Set accelerometer update rate at 100 Hz
+    dof.setAccelODR(dof.A_ODR_400); // Set accelerometer update rate at 100 Hz
  // Accelerometer anti-aliasing filter rate can be 50, 194, 362, or 763 Hz
  // Anti-aliasing acts like a low-pass filter allowing oversampling of accelerometer and rejection of high-frequency spurious noise.
  // Strategy here is to effectively oversample accelerometer at 100 Hz and use a 50 Hz anti-aliasing (low-pass) filter frequency
@@ -204,7 +224,7 @@ void setup()
  
  // Gyro output data rates can be: 95 Hz (bandwidth 12.5 or 25 Hz), 190 Hz (bandwidth 12.5, 25, 50, or 70 Hz)
  //                                 380 Hz (bandwidth 20, 25, 50, 100 Hz), or 760 Hz (bandwidth 30, 35, 50, 100 Hz)
-    dof.setGyroODR(dof.G_ODR_190_BW_125);  // Set gyro update rate to 190 Hz with the smallest bandwidth for low noise
+    dof.setGyroODR(dof.G_ODR_380_BW_100);  // Set gyro update rate to 190 Hz with the smallest bandwidth for low noise
 
  // Magnetometer output data rate can be: 3.125 (ODR_3125), 6.25 (ODR_625), 12.5 (ODR_125), 25, 50, or 100 Hz
     dof.setMagODR(dof.M_ODR_125); // Set magnetometer to update every 80 ms
@@ -232,9 +252,9 @@ void loop()
   
   if(digitalRead(INT2XM)) {  // When new magnetometer data is ready
     dof.readMag();           // Read raw magnetometer data
-    mx = dof.calcMag(dof.mx);     // Convert to Gauss and correct for calibration
-    my = dof.calcMag(dof.my);
-    mz = dof.calcMag(dof.mz);
+    mx = dof.calcMag(dof.mx) / 0.98229979f * 0.9f + 0.051208495f;     // Convert to Gauss and correct for calibration
+    my = dof.calcMag(dof.my) / 0.87823485f * 0.9f - 0.065338135f;
+    mz = dof.calcMag(dof.mz) / 0.90429687f * 0.9f + 0.006713865f;
     
     dof.readTemp();
     temperature = 21.0 + (float) dof.temperature/8.; // slope is 8 LSB per degree C, just guessing at the intercept
@@ -246,10 +266,27 @@ void loop()
   // Sensors x- and y-axes are aligned but magnetometer z-axis (+ down) is opposite to z-axis (+ up) of accelerometer and gyro!
   // This is ok by aircraft orientation standards!  
   // Pass gyro rate as rad/s
-   MadgwickQuaternionUpdate(ax, ay, az, gx*PI/180.0f, gy*PI/180.0f, gz*PI/180.0f, mx, my, mz);
-   //MahonyQuaternionUpdate(ax, ay, az, gx*PI/180.0f, gy*PI/180.0f, gz*PI/180.0f, mx, my, mz);
+   //MadgwickQuaternionUpdate(ax, ay, az, gx*PI/180.0f, gy*PI/180.0f, gz*PI/180.0f, mx, my, mz);
+   MahonyQuaternionUpdate(ax, ay, az, gx*PI/180.0f, gy*PI/180.0f, gz*PI/180.0f, mx, my, mz);
    
-  
+   if(mx > mx_max){
+     mx_max = mx;
+   }
+   if(my > my_max){
+     my_max = my;
+   }   
+   if(mz > mz_max){
+     mz_max = mz;
+   }
+   if(mx < mx_min){
+     mx_min = mx;
+   }  
+   if(my < my_min){
+     my_min = my;
+   }   
+   if(mz < mz_min){
+     mz_min = mz;
+   }
 
     // Serial print and/or display at 0.5 s rate independent of data rates
     delt_t = millis() - count;
@@ -276,25 +313,60 @@ void loop()
     yaw   *= 180.0f / PI; 
     yaw   -= 0.20; // Declination at Danville, Singapore is 0 degrees 11 minutes and 50 seconds E on 2014-10-14
     roll  *= 180.0f / PI;
+    
+    gx_integrate += gx;
+    gy_integrate += gy;
+    gz_integrate += gz;
 
-    //Serial.print("ax = "); Serial.print((int)1000*ax);  
-    //Serial.print(" ay = "); Serial.print((int)1000*ay); 
-    //Serial.print(" az = "); Serial.print((int)1000*az); Serial.println(" mg");
-    //Serial.print("gx = "); Serial.print( gx, 2); 
-    //Serial.print(" gy = "); Serial.print( gy, 2); 
-    //Serial.print(" gz = "); Serial.print( gz, 2); Serial.println(" deg/s");
-    //Serial.print("mx = "); Serial.print( (int)1000*mx); 
-    //Serial.print(" my = "); Serial.print( (int)1000*my); 
-    //Serial.print(" mz = "); Serial.print( (int)1000*mz); Serial.println(" mG");
+    //Serial.print("ax = "); 
+    //Serial.print(ax,8);  Serial.print(","); 
+    //Serial.print(" ay = "); 
+    //Serial.print(ay,8);  Serial.print(",");
+    //Serial.print(" az = "); 
+    //Serial.print(az,8);  Serial.print(",");
+    //Serial.println(" mg");
+    //Serial.print("gx = "); 
+    //Serial.print( gx, 8);  Serial.print(",");
+    //Serial.print(" gy = "); 
+    //Serial.print( gy, 8);  Serial.print(",");
+    //Serial.print(" gz = "); 
+    //Serial.print( gz, 8);  Serial.print(",");
+    //Serial.println(" deg/s");
+    
+    /***
+    Serial.print("mx = "); 
+    Serial.print(mx, 8); Serial.print(",");
+    Serial.print(" my = "); 
+    Serial.print(my, 8); Serial.print(",");
+    Serial.print(" mz = "); 
+    Serial.println(mz, 8); Serial.print(",");
+    Serial.println(" mG");
+    
+    Serial.print("mx_max = "); 
+    Serial.print(mx_max, 8); Serial.print(",");
+    Serial.print(" my_max = "); 
+    Serial.print(my_max, 8); Serial.print(",");
+    Serial.print(" mz_max = "); 
+    Serial.println(mz_max, 8); Serial.print(",");
+    Serial.println(" mG");
+    
+    Serial.print("mx_min = "); 
+    Serial.print(mx_min, 8); Serial.print(",");
+    Serial.print(" my_min = "); 
+    Serial.print(my_min, 8); Serial.print(",");
+    Serial.print(" mz_min = "); 
+    Serial.println(mz_min, 8); Serial.print(",");
+    Serial.println(" mG");
+    ***/
     
     //Serial.print("temperature = "); Serial.println(temperature, 2);
     
     //Serial.print("Yaw, Pitch, Roll: ");
-    //Serial.print(yaw, 2);
+    //Serial.print(yaw, 8);
     //Serial.print(", ");
-    //Serial.print(pitch, 2);
+    //Serial.print(pitch, 8);
     //Serial.print(", ");
-    //Serial.println(roll, 2);
+    //Serial.println(roll, 8);
     
     //Serial.print("q0 = "); 
     //Serial.println(q[0]);
@@ -305,17 +377,22 @@ void loop()
     //Serial.print(" qz = "); 
     //Serial.println(q[3]); 
     //Serial.print("q0 = "); 
-    Serial.print(q[0], 7); Serial.print(",");
+    Serial.print(q[0], 8); Serial.print(",");
      //Serial.print(" qx = "); 
-     Serial.print(q[1], 7); Serial.print(",");
+     Serial.print(q[1], 8); Serial.print(",");
      //Serial.print(" qy = "); 
-     Serial.print(q[2], 7); Serial.print(",");
+     Serial.print(q[2], 8); Serial.print(",");
      //Serial.print(" qz = "); 
-     Serial.print(q[3], 7); Serial.print(",");
+     Serial.print(q[3], 8); Serial.print(",");
      Serial.println(i);
+     //Serial.print( gx_integrate, 8);  Serial.print(",");
+     //Serial.print(" gy = "); 
+     //Serial.print( gy_integrate, 8);  Serial.print(",");
+     //Serial.print(" gz = "); 
+     //Serial.println( gz_integrate, 8);
    i++;  
     
-    //Serial.print("filter rate = "); Serial.println(1.0f/deltat, 1); 
+    //Serial.print(millis()*1000);Serial.println(" ");Serial.print("filter rate = "); Serial.println(1.0f/deltat, 1); 
   
     // With ODR settings of 400 Hz, 380 Hz, and 25 Hz for the accelerometer, gyro, and magnetometer, respectively,
     // the filter is updating at a ~125 Hz rate using the Madgwick scheme and ~165 Hz using the Mahony scheme 
@@ -406,6 +483,8 @@ void printOrientation(float x, float y, float z)
             float _2q2mx;
             float _4bx;
             float _4bz;
+            float _8bx;
+            float _8bz;
             float _2q1 = 2.0f * q1;
             float _2q2 = 2.0f * q2;
             float _2q3 = 2.0f * q3;
@@ -450,12 +529,16 @@ void printOrientation(float x, float y, float z)
             _2bz = -_2q1mx * q3 + _2q1my * q2 + mz * q1q1 + _2q2mx * q4 - mz * q2q2 + _2q3 * my * q4 - mz * q3q3 + mz * q4q4;
             _4bx = 2.0f * _2bx;
             _4bz = 2.0f * _2bz;
+            _8bx = 2.0f * _4bx;
+            _8bz = 2.0f * _4bz;
 
             // Gradient decent algorithm corrective step
-            s1 = -_2q3 * (2.0f * q2q4 - _2q1q3 - ax) + _2q2 * (2.0f * q1q2 + _2q3q4 - ay) - _2bz * q3 * (_2bx * (0.5f - q3q3 - q4q4) + _2bz * (q2q4 - q1q3) - mx) + (-_2bx * q4 + _2bz * q2) * (_2bx * (q2q3 - q1q4) + _2bz * (q1q2 + q3q4) - my) + _2bx * q3 * (_2bx * (q1q3 + q2q4) + _2bz * (0.5f - q2q2 - q3q3) - mz);
-            s2 = _2q4 * (2.0f * q2q4 - _2q1q3 - ax) + _2q1 * (2.0f * q1q2 + _2q3q4 - ay) - 4.0f * q2 * (1.0f - 2.0f * q2q2 - 2.0f * q3q3 - az) + _2bz * q4 * (_2bx * (0.5f - q3q3 - q4q4) + _2bz * (q2q4 - q1q3) - mx) + (_2bx * q3 + _2bz * q1) * (_2bx * (q2q3 - q1q4) + _2bz * (q1q2 + q3q4) - my) + (_2bx * q4 - _4bz * q2) * (_2bx * (q1q3 + q2q4) + _2bz * (0.5f - q2q2 - q3q3) - mz);
-            s3 = -_2q1 * (2.0f * q2q4 - _2q1q3 - ax) + _2q4 * (2.0f * q1q2 + _2q3q4 - ay) - 4.0f * q3 * (1.0f - 2.0f * q2q2 - 2.0f * q3q3 - az) + (-_4bx * q3 - _2bz * q1) * (_2bx * (0.5f - q3q3 - q4q4) + _2bz * (q2q4 - q1q3) - mx) + (_2bx * q2 + _2bz * q4) * (_2bx * (q2q3 - q1q4) + _2bz * (q1q2 + q3q4) - my) + (_2bx * q1 - _4bz * q3) * (_2bx * (q1q3 + q2q4) + _2bz * (0.5f - q2q2 - q3q3) - mz);
-            s4 = _2q2 * (2.0f * q2q4 - _2q1q3 - ax) + _2q3 * (2.0f * q1q2 + _2q3q4 - ay) + (-_4bx * q4 + _2bz * q2) * (_2bx * (0.5f - q3q3 - q4q4) + _2bz * (q2q4 - q1q3) - mx) + (-_2bx * q1 + _2bz * q3) * (_2bx * (q2q3 - q1q4) + _2bz * (q1q2 + q3q4) - my) + _2bx * q2 * (_2bx * (q1q3 + q2q4) + _2bz * (0.5f - q2q2 - q3q3) - mz);
+            
+            s1= -_2q3*(2*(q2q4 - q1q3) - ax)    +   _2q2*(2*(q1q2 + q3q4) - ay)   +  -_4bz*q3*(_4bx*(0.5 - q3q3 - q4q4) + _4bz*(q2q4 - q1q3) - mx)   +   (-_4bx*q4+_4bz*q2)*(_4bx*(q2q3 - q1q4) + _4bz*(q1q2 + q3q4) - my)    +   _4bx*q3*(_4bx*(q1q3 + q2q4) + _4bz*(0.5 - q2q2 - q3q3) - mz);
+            s2= _2q4*(2*(q2q4 - q1q3) - ax) +   _2q1*(2*(q1q2 + q3q4) - ay) +   -4*q2*(2*(0.5 - q2q2 - q3q3) - az)    +   _4bz*q4*(_4bx*(0.5 - q3q3 - q4q4) + _4bz*(q2q4 - q1q3) - mx)   + (_4bx*q3+_4bz*q1)*(_4bx*(q2q3 - q1q4) + _4bz*(q1q2 + q3q4) - my)   +   (_4bx*q4-_8bz*q2)*(_4bx*(q1q3 + q2q4) + _4bz*(0.5 - q2q2 - q3q3) - mz);             
+            s3= -_2q1*(2*(q2q4 - q1q3) - ax)    +     _2q4*(2*(q1q2 + q3q4) - ay)   +   (-4*q3)*(2*(0.5 - q2q2 - q3q3) - az) +   (-_8bx*q3-_4bz*q1)*(_4bx*(0.5 - q3q3 - q4q4) + _4bz*(q2q4 - q1q3) - mx)+(_4bx*q2+_4bz*q4)*(_4bx*(q2q3 - q1q4) + _4bz*(q1q2 + q3q4) - my)+(_4bx*q1-_8bz*q3)*(_4bx*(q1q3 + q2q4) + _4bz*(0.5 - q2q2 - q3q3) - mz);
+            s4= _2q2*(2*(q2q4 - q1q3) - ax) +   _2q3*(2*(q1q2 + q3q4) - ay)+(-_8bx*q4+_4bz*q2)*(_4bx*(0.5 - q3q3 - q4q4) + _4bz*(q2q4 - q1q3) - mx)+(-_4bx*q1+_4bz*q3)*(_4bx*(q2q3 - q1q4) + _4bz*(q1q2 + q3q4) - my)+(_4bx*q2)*(_4bx*(q1q3 + q2q4) + _4bz*(0.5 - q2q2 - q3q3) - mz);
+
             norm = sqrt(s1 * s1 + s2 * s2 + s3 * s3 + s4 * s4);    // normalise step magnitude
             norm = 1.0f/norm;
             s1 *= norm;
