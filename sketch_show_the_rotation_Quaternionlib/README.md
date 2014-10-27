@@ -9,3 +9,5 @@ to show the rotation of the chip.
 The arduino code was modified from [kriswiner's LSM9DS0 AHRS sketch](https://github.com/kriswiner/LSM9DS0).
 
 You can change the texture of chip into DOOOOGE. How good is that!
+
+Now you can drag the chip using mouse.
