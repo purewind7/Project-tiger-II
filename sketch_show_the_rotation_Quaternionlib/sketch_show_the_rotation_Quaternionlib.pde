@@ -18,6 +18,12 @@ float hight_now = 16;
 Chip my_chip;             // my chip!
 Quaternion q_now;         //Quaternion for q.
 
+int mousePress_x,mousePress_y;
+float drag_x,drag_y;
+float drag_x_memo,drag_y_memo;
+Boolean press = false;
+float rotate_x,rotate_y;
+
 void setup() {
   
   size(800,450,P3D);
@@ -28,17 +34,41 @@ void setup() {
   q_now = new Quaternion(1,0,0,0);
   
   // Open whatever port is the one you're using. 
-  String portName = "/dev/tty.usbmodem1411";
-  myPort = new Serial(this, portName, 38400); 
+  //String portName = "/dev/tty.usbmodem1411";
+  //myPort = new Serial(this, portName, 38400); 
   //myPort.bufferUntil('\n');
   delay(1000);
-  myPort.clear();  
+  //myPort.clear();  
   delay(5000);
 
 }
 
 void draw() {
-
+  if (mousePressed && press == false){
+    press = true;
+    mousePress_x = mouseX;                // catch the mouse position
+    mousePress_y = mouseY;
+  }
+  
+  if (mousePressed && press == true){
+    drag_x = mouseX + drag_x_memo - mousePress_x;       // get the drag distance
+    drag_y = mouseY + drag_y_memo - mousePress_y;       // if the mouse pressed now
+  }
+  
+  if(!mousePressed){
+    press = false;
+    drag_x_memo = drag_x;                               // memory the drag distance
+    drag_y_memo = drag_y;
+  }
+  
+  rotate_x = -drag_y/width*PI;
+  rotate_y = drag_x/height*PI;
+  translate(width/2.0, height/2.0,0);
+  rotateY(rotate_y);
+  rotateX(rotate_x);
+  translate(-width/2.0, -height/2.0,0);
+  
+  
   //q_now.W = -0.11; q_now.X = -0.95; q_now.Y = -0.29 ; q_now.Z = -0.05;
   //q_now = new Quaternion(cos(angle_now/2),sin(angle_now/2) * axi_x,sin(angle_now/2) * axi_y,sin(angle_now/2) * axi_z);
   //q_now = new Quaternion(1,0,0,0);
@@ -52,9 +82,9 @@ void draw() {
    int x_axis_long = 100;
    int y_axis_long = 75;
    int z_axis_long = 50;
-   int x_pos = 300;
-   int y_pos = 150;
-   int z_pos = 100;
+   int x_pos = 150;
+   int y_pos = 75;
+   int z_pos = 13;
    // x axis
    line(0+x-x_pos,0+y+y_pos,-z_pos,x_axis_long+x-x_pos,0+y+y_pos,-z_pos);
    line(x_axis_long+x-x_pos,0+y+y_pos,-z_pos,x_axis_long-10+x-x_pos,-5+y+y_pos,-z_pos);
@@ -74,7 +104,7 @@ void draw() {
    
    my_chip.draw_chip_box(); // draw a chip like box represent the initial position
    
-   val = readArduino(q_now, i_s);
+   //val = readArduino(q_now, i_s);
    //q_now.normalize(); //normalize the quaternion
    
    my_chip.vertices_cal();  
